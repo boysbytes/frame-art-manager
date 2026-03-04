@@ -1,0 +1,1604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frame · Art Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iMiIgeT0iMiIgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTYgMTZsNC00IDQgNE0xMCAxMmwyLTIgMiAyIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+PC9zdmc+" type="image/svg+xml">
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f5f1;
+  --surface:#ffffff;
+  --surface2:#f2efe9;
+  --border:#e2ddd6;
+  --border2:#ccc7be;
+  --text:#1c1a17;
+  --mid:#6e6860;
+  --faint:#a8a096;
+  --accent:#1c1a17;
+  --green:#2d6b48;
+  --red:#8b3232;
+  --amber:#7a6020;
+  --blue:#2a4a7a;
+  --r:5px;
+  --serif:'Playfair Display',Georgia,serif;
+  --mono:'JetBrains Mono',monospace;
+}
+body{font-family:var(--mono);font-size:13px;background:var(--bg);color:var(--text);min-height:100vh}
+/* ── Header ── */
+header{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 32px;height:58px;gap:20px;
+  position:sticky;top:0;z-index:100;
+}
+.logo{font-family:var(--serif);font-size:19px;font-weight:500;color:var(--accent);letter-spacing:.01em}
+.logo em{font-style:italic;color:var(--mid)}
+.tv-pill{
+  margin-left:auto;display:flex;align-items:center;gap:7px;
+  background:var(--bg);border:1px solid var(--border);border-radius:20px;
+  padding:5px 12px;font-size:11px;color:var(--faint);
+}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--border2);transition:background .4s}
+.dot.on{background:var(--green);box-shadow:0 0 5px #2d6b4840}
+.dot.off{background:var(--red)}
+.dot.busy{background:var(--amber);animation:blink 1s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── Tabs ── */
+nav{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;padding:0 32px;gap:2px;
+}
+.tab{
+  padding:13px 16px 12px;background:none;border:none;
+  font-family:var(--mono);font-size:12px;cursor:pointer;color:var(--faint);
+  border-bottom:2px solid transparent;margin-bottom:-1px;
+  letter-spacing:.06em;text-transform:uppercase;transition:color .2s,border-color .2s;
+}
+.tab:hover{color:var(--mid)}
+.tab.on{color:var(--text);border-bottom-color:var(--text)}
+
+/* ── Layout ── */
+main{padding:32px;max-width:1140px;animation:fadein .3s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.pane{display:none}.pane.on{display:block}
+
+/* ── Cards ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px 28px;margin-bottom:18px}
+.card-head{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:18px}
+
+/* ── Drop zone ── */
+.drop{
+  border:2px dashed var(--border2);border-radius:var(--r);
+  padding:52px 32px;text-align:center;cursor:pointer;
+  transition:border-color .2s,background .2s;
+  background:var(--surface);
+}
+.drop:hover,.drop.over{border-color:var(--text);background:var(--surface2)}
+.drop-icon{font-size:32px;margin-bottom:12px;opacity:.35}
+.drop-title{font-family:var(--serif);font-size:17px;margin-bottom:6px;color:var(--mid)}
+.drop-sub{font-size:11px;color:var(--faint);letter-spacing:.04em}
+#file-input{display:none}
+
+/* ── Image list ── */
+.img-list{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.img-row{
+  display:flex;align-items:center;gap:12px;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:8px 12px;cursor:default;
+  transition:border-color .2s,box-shadow .2s;
+}
+.img-row.portrait-selectable{cursor:pointer}
+.img-row.portrait-selectable:hover{border-color:var(--border2)}
+.img-row.selected{border-color:var(--text);box-shadow:0 0 0 1px var(--text)}
+.img-row.paired{opacity:.55}
+.img-thumb-sm{
+  width:64px;height:36px;object-fit:cover;border-radius:3px;
+  background:var(--surface2);flex-shrink:0;
+}
+.img-name{flex:1;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.img-dims{color:var(--faint);font-size:11px;white-space:nowrap;margin-right:4px}
+.badge{
+  display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;
+  letter-spacing:.05em;white-space:nowrap;
+}
+.b-land{background:#e8f0e8;color:var(--green)}
+.b-port{background:#e8ecf4;color:var(--blue)}
+.b-pair{background:#f2ece8;color:var(--amber)}
+.b-up{background:#e8f0e8;color:var(--green)}
+.b-pend{background:var(--surface2);color:var(--faint)}
+.img-remove{
+  background:none;border:none;cursor:pointer;color:var(--faint);
+  font-size:16px;line-height:1;padding:2px 4px;border-radius:3px;
+  transition:color .15s;flex-shrink:0;
+}
+.img-remove:hover{color:var(--red)}
+
+/* ── Portrait pairing area ── */
+.pair-hint{
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);
+  padding:12px 16px;font-size:12px;color:var(--mid);margin-bottom:8px;
+  display:flex;align-items:center;gap:10px;
+}
+.pair-hint-icon{font-size:16px}
+
+/* ── Processed grid ── */
+.proc-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:14px;margin-top:16px;
+}
+.proc-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;
+  transition:border-color .2s;
+}
+.proc-card:hover{border-color:var(--border2)}
+.proc-preview{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:var(--surface2)}
+.proc-meta{padding:10px 12px}
+.proc-name{font-size:11px;color:var(--mid);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:6px}
+.proc-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+
+/* ── Buttons ── */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 18px;font-family:var(--mono);font-size:12px;
+  border-radius:var(--r);cursor:pointer;border:1px solid transparent;
+  transition:all .16s;letter-spacing:.03em;
+}
+.btn-primary{background:var(--text);color:#fff;border-color:var(--text)}
+.btn-primary:hover:not(:disabled){background:#3a3630}
+.btn-primary:disabled{background:var(--border2);border-color:var(--border2);cursor:not-allowed;opacity:.7}
+.btn-outline{background:none;color:var(--text);border-color:var(--border2)}
+.btn-outline:hover:not(:disabled){border-color:var(--text)}
+.btn-ghost{background:none;color:var(--mid);border-color:transparent}
+.btn-ghost:hover{color:var(--text);background:var(--surface2)}
+.btn-danger{background:none;color:var(--red);border-color:#dba8a8}
+.btn-danger:hover{background:#fdf2f2}
+.btn-sm{padding:5px 12px;font-size:11px}
+.btn-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:20px}
+
+/* ── Fields ── */
+.field{margin-bottom:16px}
+.field:last-child{margin-bottom:0}
+label{display:block;font-size:11px;color:var(--mid);margin-bottom:6px;letter-spacing:.06em;text-transform:uppercase}
+input[type=text],input[type=number],select{
+  width:100%;padding:8px 11px;font-family:var(--mono);font-size:12px;
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--r);
+  color:var(--text);outline:none;transition:border-color .2s;
+}
+input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--text)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.toggle-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 0;border-top:1px solid var(--border);margin-top:4px;
+}
+.toggle-label{font-size:12px;color:var(--mid)}
+.toggle{position:relative;width:38px;height:21px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.tslider{
+  position:absolute;inset:0;background:var(--border2);border-radius:10px;transition:background .25s
+}
+.tslider::before{
+  content:'';position:absolute;width:15px;height:15px;
+  left:3px;top:3px;background:white;border-radius:50%;transition:transform .25s;
+}
+.toggle input:checked+.tslider{background:var(--text)}
+.toggle input:checked+.tslider::before{transform:translateX(17px)}
+
+/* ── Stats ── */
+.stat-row{
+  display:flex;border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;margin-bottom:18px;background:var(--surface);
+}
+.stat{flex:1;padding:16px 18px;border-right:1px solid var(--border)}
+.stat:last-child{border-right:none}
+.stat-n{font-family:var(--serif);font-size:26px;font-weight:500;line-height:1;margin-bottom:3px}
+.stat-l{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+
+/* ── TV Art table ── */
+.art-table{width:100%;border-collapse:collapse}
+.art-table th{
+  text-align:left;padding:7px 14px;border-bottom:1px solid var(--border);
+  font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);
+}
+.art-table td{padding:9px 14px;border-bottom:1px solid var(--border);color:var(--mid);font-size:12px}
+.art-table tr:last-child td{border-bottom:none}
+.art-table .cid{color:var(--text)}
+.art-table input[type=checkbox]{accent-color:var(--text);width:13px;height:13px;cursor:pointer}
+
+/* ── Connection steps ── */
+.steps{counter-reset:step;display:flex;flex-direction:column;gap:14px;margin-bottom:20px}
+.step{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 18px;background:var(--surface2);border-radius:var(--r);
+  border:1px solid var(--border);
+}
+.step::before{
+  counter-increment:step;content:counter(step);
+  width:24px;height:24px;border-radius:50%;background:var(--border2);color:var(--surface);
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;
+  flex-shrink:0;
+}
+.step.done::before{background:var(--green)}
+.step-text{flex:1;color:var(--mid);line-height:1.55;font-size:12px}
+.step-text strong{color:var(--text)}
+
+/* ── Log ── */
+.log{
+  background:#1a1816;border-radius:var(--r);padding:14px 18px;
+  max-height:220px;overflow-y:auto;margin-top:14px;display:none;
+}
+.log-line{display:block;color:#c8c1b4;font-size:11.5px;line-height:1.65;white-space:pre-wrap}
+.log-line.ok{color:#7abf8a}
+.log-line.err{color:#c97a7a}
+.log-line.info{color:#7aaec9}
+
+/* ── Empty ── */
+.empty{text-align:center;padding:42px 20px;color:var(--faint);font-style:italic;font-family:var(--serif);font-size:15px}
+
+/* ── Divider ── */
+hr{border:none;border-top:1px solid var(--border);margin:22px 0}
+
+/* ── Toast ── */
+.toast{
+  position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;
+  padding:10px 18px;border-radius:var(--r);font-size:12px;
+  opacity:0;transform:translateY(8px);pointer-events:none;
+  transition:opacity .25s,transform .25s;z-index:999;max-width:320px;
+}
+.toast.show{opacity:1;transform:none}
+
+@media(max-width:640px){
+  header,nav{padding:0 16px}
+  main{padding:16px}
+  .field-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Frame <em>Art Manager</em></div>
+  <div class="tv-pill">
+    <div class="dot" id="dot"></div>
+    <span id="tv-label">not connected</span>
+  </div>
+</header>
+
+<nav>
+  <button class="tab on" data-tab="artwork">Artwork</button>
+  <button class="tab" data-tab="tv">TV Library</button>
+  <button class="tab" data-tab="settings">Settings</button>
+</nav>
+
+<main>
+
+  <!-- ═══════════════════════ ARTWORK ═══════════════════════ -->
+  <div class="pane on" id="pane-artwork">
+
+    <div class="card">
+      <div class="card-head">Source Images</div>
+      <div class="drop" id="drop-zone">
+        <input type="file" id="file-input" accept="image/*" multiple>
+        <div class="drop-icon">⬡</div>
+        <div class="drop-title">Drop images here</div>
+        <div class="drop-sub">JPEG · PNG · or click to browse</div>
+      </div>
+      <div id="img-list" class="img-list"></div>
+    </div>
+
+    <div id="pair-hint" class="pair-hint" style="display:none">
+      <span class="pair-hint-icon">↕</span>
+      <span id="pair-hint-text"></span>
+      <button class="btn btn-outline btn-sm" id="btn-autopair" style="margin-left:auto">Auto-pair</button>
+      <button class="btn btn-ghost btn-sm" id="btn-clearpairs">Clear pairs</button>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-process" disabled>Process Images</button>
+      <button class="btn btn-ghost btn-sm" id="btn-clear-all">Clear all</button>
+      <span id="proc-count" style="margin-left:auto;color:var(--faint);font-size:11px"></span>
+    </div>
+
+    <div id="processed-section" style="display:none">
+      <hr>
+      <div class="card-head" style="margin-bottom:14px">Processed — 3840 × 2160</div>
+      <div class="btn-row" style="margin-top:0;margin-bottom:16px">
+        <button class="btn btn-outline btn-sm" id="btn-dl-zip">↓ Download all as ZIP</button>
+        <button class="btn btn-primary btn-sm" id="btn-upload-all" disabled>↑ Upload all to TV</button>
+      </div>
+      <div id="proc-grid" class="proc-grid"></div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════ TV LIBRARY ═══════════════════════ -->
+  <div class="pane" id="pane-tv">
+
+    <div class="card" id="conn-card">
+      <div class="card-head">Connection</div>
+      <div class="field field-row">
+        <div>
+          <label>TV IP Address</label>
+          <input type="text" id="tv-ip-input" placeholder="192.168.1.XXX">
+        </div>
+        <div style="display:flex;flex-direction:column;justify-content:flex-end">
+          <button class="btn btn-outline" id="btn-trust">① Trust certificate</button>
+        </div>
+      </div>
+      <div class="steps" id="conn-steps">
+        <div class="step" id="step1">
+          <div class="step-text">
+            <strong>Trust the TV's certificate.</strong><br>
+            Click "Trust certificate" above — it opens <code>https://TV_IP:8002</code> in a new tab.
+            Accept the security warning there (Advanced → Proceed), then come back.
+          </div>
+        </div>
+        <div class="step" id="step2">
+          <div class="step-text">
+            <strong>Connect.</strong><br>
+            Click Connect. The TV may show a pairing prompt — accept it. The token is saved for future sessions.
+          </div>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:0">
+        <button class="btn btn-primary" id="btn-connect">Connect</button>
+        <button class="btn btn-outline" id="btn-disconnect" style="display:none">Disconnect</button>
+        <button class="btn btn-outline btn-sm" id="btn-refresh-art" style="display:none;margin-left:auto">Refresh library</button>
+      </div>
+      <div class="log" id="conn-log"></div>
+    </div>
+
+    <div id="art-section" style="display:none">
+      <div class="stat-row" id="art-stats">
+        <div class="stat"><div class="stat-n" id="sn-total">—</div><div class="stat-l">Total</div></div>
+        <div class="stat"><div class="stat-n" id="sn-yours">—</div><div class="stat-l">Your uploads</div></div>
+        <div class="stat"><div class="stat-n" id="sn-samsung">—</div><div class="stat-l">Samsung art</div></div>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden" id="art-table-wrap">
+        <table class="art-table" id="art-table">
+          <thead><tr><th><input type="checkbox" id="chk-all"></th><th>Content ID</th><th>Type</th><th>Category</th><th>Source</th></tr></thead>
+          <tbody id="art-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-danger btn-sm" id="btn-delete-sel">Delete selected</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════ SETTINGS ═══════════════════════ -->
+  <div class="pane" id="pane-settings">
+
+    <div class="card">
+      <div class="card-head">Matte</div>
+      <div class="field-row">
+        <div class="field">
+          <label>Matte Style</label>
+          <select id="s-matte-style">
+            <option value="none">None</option>
+            <option value="modern" selected>Modern</option>
+            <option value="modernthin">Modern Thin</option>
+            <option value="modernwide">Modern Wide</option>
+            <option value="flexible">Flexible</option>
+            <option value="shadowbox">Shadow Box</option>
+            <option value="panoramic">Panoramic</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Matte Colour</label>
+          <select id="s-matte-color">
+            <option value="warm" selected>Warm</option>
+            <option value="black">Black</option>
+            <option value="neutral">Neutral</option>
+            <option value="antique">Antique</option>
+            <option value="polar">Polar</option>
+            <option value="sand">Sand</option>
+            <option value="seafoam">Seafoam</option>
+            <option value="sage">Sage</option>
+            <option value="navy">Navy</option>
+            <option value="apricot">Apricot</option>
+            <option value="lavender">Lavender</option>
+            <option value="skyblue">Sky Blue</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">Art Mode</div>
+      <div class="toggle-row">
+        <span class="toggle-label">Enable Art Mode after upload</span>
+        <label class="toggle"><input type="checkbox" id="s-auto-art" checked><span class="tslider"></span></label>
+      </div>
+      <div class="field" style="margin-top:16px">
+        <label>Slideshow interval (minutes, 0 = off)</label>
+        <input type="number" id="s-slideshow" value="30" min="0" max="1440" style="max-width:140px">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">Data</div>
+      <p style="color:var(--mid);font-size:12px;margin-bottom:20px;line-height:1.7">
+        Settings and the TV token are stored in your browser's localStorage. Nothing is ever sent to any external server.
+      </p>
+      <div class="toggle-row" style="border-top:1px solid var(--border);padding-top:14px;gap:16px;align-items:flex-start;flex-wrap:wrap">
+        <div style="flex:1;min-width:180px">
+          <div style="font-size:12px;color:var(--text);margin-bottom:3px">Delete uploaded images</div>
+          <div style="font-size:11px;color:var(--faint);line-height:1.55">Permanently removes all your uploaded images from the TV. Requires an active connection.</div>
+        </div>
+        <button class="btn btn-danger btn-sm" id="btn-clear-uploads" style="flex-shrink:0">Delete from TV</button>
+      </div>
+      <div class="toggle-row" style="gap:16px;align-items:flex-start;flex-wrap:wrap">
+        <div style="flex:1;min-width:180px">
+          <div style="font-size:12px;color:var(--text);margin-bottom:3px">Wipe all app data</div>
+          <div style="font-size:11px;color:var(--faint);line-height:1.55">Removes saved settings, the TV pairing token, and badge history. You will need to re-pair the TV.</div>
+        </div>
+        <button class="btn btn-danger btn-sm" id="btn-clear-storage" style="flex-shrink:0">Wipe app data</button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-save-settings">Save Settings</button>
+      <span id="saved-notice" style="font-size:11px;color:var(--green);opacity:0;transition:opacity .4s">Saved ✔</span>
+    </div>
+
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ─────────────────────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────────────────────
+const state = {
+  sources: [],     // {id, file, img, name, w, h, isPortrait, pairId, thumb}
+  pairs: [],       // [{a: id, b: id}]  — ordered pairs for side-by-side
+  processed: [],   // {id, name, blob, dataUrl, uploaded}
+  tv: null,        // FrameTVArt instance
+  uploading: false,
+};
+let _nextId = 0;
+const uid = () => 'i' + (_nextId++);
+
+// ─────────────────────────────────────────────────────────────
+//  PERSIST
+// ─────────────────────────────────────────────────────────────
+function loadSettings() {
+  try { return JSON.parse(localStorage.getItem('ftv_settings') || '{}'); } catch { return {}; }
+}
+function saveSettings(s) { localStorage.setItem('ftv_settings', JSON.stringify(s)); }
+function getToken() { return localStorage.getItem('ftv_token') || ''; }
+function setToken(t) { if(t) localStorage.setItem('ftv_token', t); }
+function getUploadedSet() {
+  try { return new Set(JSON.parse(localStorage.getItem('ftv_uploaded') || '[]')); } catch { return new Set(); }
+}
+function markUploaded(name) {
+  const s = getUploadedSet(); s.add(name);
+  localStorage.setItem('ftv_uploaded', JSON.stringify([...s]));
+}
+
+// ─────────────────────────────────────────────────────────────
+//  UI HELPERS
+// ─────────────────────────────────────────────────────────────
+function toast(msg, ms = 2800) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), ms);
+}
+
+function log(logId, msg, cls = '') {
+  const el = document.getElementById(logId);
+  el.style.display = 'block';
+  const line = document.createElement('span');
+  line.className = 'log-line' + (cls ? ' ' + cls : '');
+  if (!cls) {
+    if (/✔|done|complete|success/i.test(msg)) cls = 'ok';
+    else if (/✗|error|fail/i.test(msg)) cls = 'err';
+    else if (/connect|upload|process/i.test(msg)) cls = 'info';
+    line.className = 'log-line' + (cls ? ' ' + cls : '');
+  }
+  line.textContent = msg;
+  el.appendChild(line);
+  el.appendChild(document.createTextNode('\n'));
+  el.scrollTop = el.scrollHeight;
+}
+
+function setTVStatus(state) {
+  const dot = document.getElementById('dot');
+  const lbl = document.getElementById('tv-label');
+  dot.className = 'dot ' + (state === 'on' ? 'on' : state === 'busy' ? 'busy' : 'off');
+  lbl.textContent = state === 'on' ? 'connected' : state === 'busy' ? 'connecting…' : 'not connected';
+}
+
+// ─────────────────────────────────────────────────────────────
+//  TABS
+// ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+    document.querySelectorAll('.pane').forEach(p => p.classList.remove('on'));
+    tab.classList.add('on');
+    document.getElementById('pane-' + tab.dataset.tab).classList.add('on');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+//  IMAGE LOADING
+// ─────────────────────────────────────────────────────────────
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('over');
+  loadFiles([...e.dataTransfer.files]);
+});
+fileInput.addEventListener('change', () => { loadFiles([...fileInput.files]); fileInput.value = ''; });
+
+async function loadFiles(files) {
+  const imgFiles = files.filter(f => f.type.startsWith('image/'));
+  if (!imgFiles.length) return;
+  for (const file of imgFiles) {
+    await addSource(file);
+  }
+  renderSources();
+}
+
+function addSource(file) {
+  return new Promise(resolve => {
+    const id = uid();
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const isPortrait = img.naturalHeight > img.naturalWidth;
+      state.sources.push({
+        id, file, img,
+        name: file.name,
+        w: img.naturalWidth,
+        h: img.naturalHeight,
+        isPortrait,
+        pairId: null,
+        thumb: url,
+      });
+      resolve();
+    };
+    img.onerror = resolve;
+    img.src = url;
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  RENDER SOURCE LIST
+// ─────────────────────────────────────────────────────────────
+let _selectedPortrait = null;
+
+function renderSources() {
+  const list = document.getElementById('img-list');
+  const portraits = state.sources.filter(s => s.isPortrait);
+  const unpairedPortraits = portraits.filter(s => !s.pairId);
+
+  // Pair hint
+  const hint = document.getElementById('pair-hint');
+  if (portraits.length > 0) {
+    hint.style.display = 'flex';
+    const txt = document.getElementById('pair-hint-text');
+    if (unpairedPortraits.length === 0) {
+      txt.textContent = 'All portraits paired ✔';
+    } else if (unpairedPortraits.length === 1) {
+      txt.textContent = '1 portrait unpaired — it will fill the full canvas alone.';
+    } else {
+      txt.textContent = `${unpairedPortraits.length} portraits unpaired — click two to pair them side-by-side, or use Auto-pair.`;
+    }
+  } else {
+    hint.style.display = 'none';
+    _selectedPortrait = null;
+  }
+
+  // Process button
+  const btnProc = document.getElementById('btn-process');
+  btnProc.disabled = state.sources.length === 0;
+
+  // Count
+  const count = document.getElementById('proc-count');
+  if (state.sources.length) {
+    const nLand = state.sources.filter(s => !s.isPortrait).length;
+    const nPort = portraits.length;
+    count.textContent = `${nLand} landscape · ${nPort} portrait${nPort !== 1 ? 's' : ''}`;
+  } else { count.textContent = ''; }
+
+  // Render rows
+  list.innerHTML = '';
+  for (const src of state.sources) {
+    const row = document.createElement('div');
+    row.className = 'img-row' +
+      (src.isPortrait && !src.pairId ? ' portrait-selectable' : '') +
+      (src.id === _selectedPortrait ? ' selected' : '') +
+      (src.pairId ? ' paired' : '');
+    row.dataset.id = src.id;
+
+    const paired = src.pairId ? state.pairs.find(p => p.a === src.id || p.b === src.id) : null;
+    const pairPartner = paired ? state.sources.find(s => s.id === (paired.a === src.id ? paired.b : paired.a)) : null;
+
+    row.innerHTML = `
+      <img class="img-thumb-sm" src="${src.thumb}" alt="">
+      <span class="img-name" title="${src.name}">${src.name}</span>
+      <span class="img-dims">${src.w}×${src.h}</span>
+      ${src.isPortrait
+        ? (src.pairId
+            ? `<span class="badge b-pair">⇔ ${pairPartner?.name || '?'}</span>`
+            : `<span class="badge b-port">portrait</span>`)
+        : `<span class="badge b-land">landscape</span>`
+      }
+      <button class="img-remove" data-id="${src.id}" title="Remove">×</button>
+    `;
+
+    if (src.isPortrait && !src.pairId) {
+      row.addEventListener('click', e => {
+        if (e.target.classList.contains('img-remove')) return;
+        handlePortraitClick(src.id);
+      });
+    }
+
+    list.appendChild(row);
+  }
+
+  // Remove buttons
+  list.querySelectorAll('.img-remove').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      removeSource(btn.dataset.id);
+    });
+  });
+}
+
+function handlePortraitClick(id) {
+  if (_selectedPortrait === null) {
+    _selectedPortrait = id;
+  } else if (_selectedPortrait === id) {
+    _selectedPortrait = null;
+  } else {
+    // Pair them
+    const a = state.sources.find(s => s.id === _selectedPortrait);
+    const b = state.sources.find(s => s.id === id);
+    if (a && b) {
+      const pairId = uid();
+      a.pairId = pairId; b.pairId = pairId;
+      state.pairs.push({a: a.id, b: b.id, pairId});
+      _selectedPortrait = null;
+    }
+  }
+  renderSources();
+}
+
+function removeSource(id) {
+  const src = state.sources.find(s => s.id === id);
+  if (src?.pairId) {
+    const pair = state.pairs.find(p => p.a === id || p.b === id);
+    if (pair) {
+      const partnerId = pair.a === id ? pair.b : pair.a;
+      const partner = state.sources.find(s => s.id === partnerId);
+      if (partner) partner.pairId = null;
+      state.pairs = state.pairs.filter(p => p !== pair);
+    }
+  }
+  state.sources = state.sources.filter(s => s.id !== id);
+  if (_selectedPortrait === id) _selectedPortrait = null;
+  renderSources();
+}
+
+document.getElementById('btn-autopair').addEventListener('click', () => {
+  // Clear existing pairs first
+  state.pairs = [];
+  state.sources.forEach(s => s.pairId = null);
+  _selectedPortrait = null;
+
+  const unpaired = state.sources.filter(s => s.isPortrait && !s.pairId);
+  while (unpaired.length >= 2) {
+    const a = unpaired.shift(), b = unpaired.shift();
+    const pairId = uid();
+    a.pairId = pairId; b.pairId = pairId;
+    state.pairs.push({a: a.id, b: b.id, pairId});
+  }
+  renderSources();
+  toast('Portraits paired automatically');
+});
+
+document.getElementById('btn-clearpairs').addEventListener('click', () => {
+  state.pairs = [];
+  state.sources.forEach(s => s.pairId = null);
+  _selectedPortrait = null;
+  renderSources();
+});
+
+document.getElementById('btn-clear-all').addEventListener('click', () => {
+  state.sources = [];
+  state.pairs = [];
+  _selectedPortrait = null;
+  renderSources();
+  document.getElementById('processed-section').style.display = 'none';
+  state.processed = [];
+});
+
+// ─────────────────────────────────────────────────────────────
+//  IMAGE PROCESSING (Canvas scale → crop)
+// ─────────────────────────────────────────────────────────────
+const TW = 3840, TH = 2160;
+
+function scaleAndCrop(imgEl, tw, th) {
+  const canvas = document.createElement('canvas');
+  canvas.width = tw; canvas.height = th;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  const sw = imgEl.naturalWidth, sh = imgEl.naturalHeight;
+  const srcRatio = sw / sh;
+  const tgtRatio = tw / th;
+
+  let cropW, cropH, cropX, cropY;
+  if (srcRatio > tgtRatio) {
+    // Wider than target: fit height, crop width
+    cropH = sh;
+    cropW = Math.round(sh * tgtRatio);
+  } else {
+    // Taller than target: fit width, crop height
+    cropW = sw;
+    cropH = Math.round(sw / tgtRatio);
+  }
+  cropX = Math.round((sw - cropW) / 2);
+  cropY = Math.round((sh - cropH) / 2);
+  ctx.drawImage(imgEl, cropX, cropY, cropW, cropH, 0, 0, tw, th);
+  return canvas;
+}
+
+function canvasToBlob(canvas, quality = 0.92) {
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+}
+
+// verify that a blob decodes to the expected 3840×2160 dimensions
+function validateBlob(blob) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      if (img.naturalWidth !== TW || img.naturalHeight !== TH) {
+        reject(new Error(
+          `processed image dimensions ${img.naturalWidth}x${img.naturalHeight} ` +
+          `do not match ${TW}x${TH}`
+        ));
+      } else {
+        resolve();
+      }
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => reject(new Error('failed to load processed blob'));
+    img.src = URL.createObjectURL(blob);
+  });
+}
+
+async function getCompliantBlob(canvas) {
+  let quality = 0.92;
+  let blob = await canvasToBlob(canvas, quality);
+  // Ensure files are < 20MB per Samsung requirements
+  while (blob.size > 20 * 1024 * 1024 && quality > 0.5) {
+    quality -= 0.1;
+    blob = await canvasToBlob(canvas, quality);
+  }
+  return blob;
+}
+
+async function processImages() {
+  const btn = document.getElementById('btn-process');
+  btn.disabled = true; btn.textContent = 'Processing…';
+  state.processed = [];
+
+  const uploaded = getUploadedSet();
+  const processed = [];
+  const handledPairIds = new Set();
+
+  for (const src of state.sources) {
+    if (src.isPortrait) {
+      if (!src.pairId) {
+        // Solo portrait: scale+crop to full canvas
+        const canvas = scaleAndCrop(src.img, TW, TH);
+        const blob = await getCompliantBlob(canvas);
+        const name = src.name.replace(/\.[^.]+$/, '') + '__solo.jpg';
+        processed.push({ id: uid(), name, blob, dataUrl: URL.createObjectURL(blob), uploaded: uploaded.has(name) });
+      } else if (!handledPairIds.has(src.pairId)) {
+        handledPairIds.add(src.pairId);
+        const pair = state.pairs.find(p => p.pairId === src.pairId || p.a === src.id || p.b === src.id);
+        if (!pair) continue;
+        const srcA = state.sources.find(s => s.id === pair.a);
+        const srcB = state.sources.find(s => s.id === pair.b);
+        if (!srcA || !srcB) continue;
+
+        // Each portrait gets 1920×2160 via scale+crop
+        const halfCanvas = document.createElement('canvas');
+        halfCanvas.width = TW; halfCanvas.height = TH;
+        const ctx = halfCanvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        const tileA = scaleAndCrop(srcA.img, TW / 2, TH);
+        const tileB = scaleAndCrop(srcB.img, TW / 2, TH);
+        ctx.drawImage(tileA, 0, 0);
+        ctx.drawImage(tileB, TW / 2, 0);
+
+        const blob = await getCompliantBlob(halfCanvas);
+        try {
+          await validateBlob(blob);
+        } catch (err) {
+          console.error('Validation failed for paired image', nameA, nameB, err);
+          toast('⚠︎ Pair output has invalid dimensions', 4000);
+        }
+        const nameA = srcA.name.replace(/\.[^.]+$/, '');
+        const nameB = srcB.name.replace(/\.[^.]+$/, '');
+        const name = nameA + '__x__' + nameB + '.jpg';
+        processed.push({ id: uid(), name, blob, dataUrl: URL.createObjectURL(blob), uploaded: uploaded.has(name) });
+      }
+    } else {
+      // Landscape: scale+crop to 3840×2160
+      const canvas = scaleAndCrop(src.img, TW, TH);
+      const blob = await getCompliantBlob(canvas);
+      try {
+        await validateBlob(blob);
+      } catch (err) {
+        console.error('Validation failed for landscape image', src.name, err);
+        toast('⚠︎ Processed image has invalid dimensions', 4000);
+      }
+      const name = src.name.replace(/\.[^.]+$/, '') + '.jpg';
+      processed.push({ id: uid(), name, blob, dataUrl: URL.createObjectURL(blob), uploaded: uploaded.has(name) });
+    }
+  }
+
+  state.processed = processed;
+  btn.disabled = false; btn.textContent = 'Process Images';
+  renderProcessed();
+  toast(`${processed.length} image${processed.length !== 1 ? 's' : ''} ready`);
+}
+
+document.getElementById('btn-process').addEventListener('click', processImages);
+
+// ─────────────────────────────────────────────────────────────
+//  RENDER PROCESSED GRID
+// ─────────────────────────────────────────────────────────────
+function renderProcessed() {
+  const section = document.getElementById('processed-section');
+  const grid = document.getElementById('proc-grid');
+  const btnUpAll = document.getElementById('btn-upload-all');
+
+  if (!state.processed.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  btnUpAll.disabled = !state.tv?.connected;
+
+  const uploaded = getUploadedSet();
+  grid.innerHTML = '';
+  for (const item of state.processed) {
+    const card = document.createElement('div');
+    card.className = 'proc-card';
+    const isUp = uploaded.has(item.name);
+    card.innerHTML = `
+      <img class="proc-preview" src="${item.dataUrl}" alt="${item.name}">
+      <div class="proc-meta">
+        <div class="proc-name" title="${item.name}">${item.name}</div>
+        <div class="proc-actions">
+          <span class="badge ${isUp ? 'b-up' : 'b-pend'}">${isUp ? 'uploaded' : 'pending'}</span>
+          <a class="btn btn-ghost btn-sm" href="${item.dataUrl}" download="${item.name}" style="padding:3px 8px;font-size:10px">↓</a>
+          ${state.tv?.connected && !isUp ? `<button class="btn btn-outline btn-sm" data-id="${item.id}" style="font-size:10px;padding:3px 8px">↑ TV</button>` : ''}
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  }
+
+  // Single upload buttons
+  grid.querySelectorAll('[data-id]').forEach(btn => {
+    btn.addEventListener('click', () => uploadOne(btn.dataset.id));
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  ZIP DOWNLOAD
+// ─────────────────────────────────────────────────────────────
+document.getElementById('btn-dl-zip').addEventListener('click', async () => {
+  if (!state.processed.length) return;
+  const zip = new JSZip();
+  for (const item of state.processed) {
+    const ab = await item.blob.arrayBuffer();
+    zip.file(item.name, ab);
+  }
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'frame-art.zip';
+  a.click(); URL.revokeObjectURL(url);
+  toast('ZIP downloaded');
+});
+
+// ─────────────────────────────────────────────────────────────
+//  SAMSUNG FRAME TV WEBSOCKET PROTOCOL
+// ─────────────────────────────────────────────────────────────
+class FrameTVArt {
+  constructor(ip, token, onLog) {
+    this.ip = ip;
+    this.token = token;
+    this.ws = null;
+    this.connected = false;
+    this.apiVersion = null;
+    this.onLog = onLog || (() => {});
+    this._pending = {};
+    // Persistent per-instance UUID used as both id and request_id for send_image,
+    // matching the Python library's self.art_uuid pattern.
+    this.artUuid = (globalThis.crypto?.randomUUID?.() || `art_${Date.now()}_${Math.floor(Math.random() * 1e6)}`);
+  }
+
+  connect() {
+    return new Promise((resolve, reject) => {
+      const name = encodeURIComponent(btoa('FrameArtManager'));
+      const tokenParam = this.token ? `&token=${encodeURIComponent(this.token)}` : '';
+      const urls = [
+        `ws://${this.ip}:8001/api/v2/channels/com.samsung.art-app?name=${name}${tokenParam}`,
+        `ws://${this.ip}:8002/api/v2/channels/com.samsung.art-app?name=${name}${tokenParam}`,
+        `wss://${this.ip}:8002/api/v2/channels/com.samsung.art-app?name=${name}${tokenParam}`,
+        `wss://${this.ip}:8002/api/v2/channels/samsung.remote.control?name=${name}${tokenParam}`,
+        `ws://${this.ip}:8002/api/v2/channels/samsung.remote.control?name=${name}${tokenParam}`,
+      ];
+
+      const tryConnect = idx => {
+        if (idx >= urls.length) {
+          reject(new Error('Connection failed. Verify TV IP and that your computer is on the same network.'));
+          return;
+        }
+
+        const url = urls[idx];
+        this.onLog(`Connecting (${url.startsWith('wss://') ? 'secure' : 'standard'})…`, 'info');
+        this.ws = new WebSocket(url);
+        this.ws.binaryType = 'arraybuffer';
+
+        let settled = false;
+        const timeout = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          try { this.ws?.close(); } catch {}
+          tryConnect(idx + 1);
+        }, 10000);
+
+        this.ws.onopen = () => {
+          this.onLog('WebSocket open, awaiting TV handshake…', 'info');
+        };
+
+        this.ws.onmessage = e => {
+          if (typeof e.data !== 'string') return this._handleBinary(e.data);
+          let msg;
+          try { msg = JSON.parse(e.data); } catch { return; }
+
+          if (msg.event === 'ms.channel.connect') {
+            clearTimeout(timeout);
+            settled = true;
+            this.connected = true;
+            if (msg.data?.token) { this.token = msg.data.token; setToken(msg.data.token); }
+            this.onLog('✔ Connected to TV', 'ok');
+            resolve(this.token);
+          } else {
+            this._handleTextMsg(msg);
+          }
+        };
+
+        this.ws.onerror = () => {
+          clearTimeout(timeout);
+          if (settled) return;
+          settled = true;
+          try { this.ws?.close(); } catch {}
+          tryConnect(idx + 1);
+        };
+
+        this.ws.onclose = e => {
+          if (!settled) return;
+          this.connected = false;
+          if (e?.code === 403) {
+            localStorage.removeItem('ftv_token');
+            this.onLog('Token rejected by TV. Please reconnect and accept pairing again.', 'err');
+          } else {
+            this.onLog('Disconnected from TV');
+          }
+          Object.values(this._pending).forEach(p => p.reject(new Error('Disconnected')));
+          this._pending = {};
+        };
+      };
+
+      tryConnect(0);
+    });
+  }
+
+  _emit(data) {
+    this.ws.send(JSON.stringify({
+      method: 'ms.channel.emit',
+      params: { event: 'art_app_request', to: 'host', data: JSON.stringify(data) }
+    }));
+  }
+
+  _waitFor(event, ms = 12000) {
+    return new Promise((resolve, reject) => {
+      const t = setTimeout(() => {
+        delete this._pending[event];
+        reject(new Error(`Timeout waiting for TV response (${event})`));
+      }, ms);
+      this._pending[event] = {
+        resolve: d => { clearTimeout(t); resolve(d); },
+        reject:  e => { clearTimeout(t); reject(e); }
+      };
+    });
+  }
+
+  _waitForAny(events, ms = 12000) {
+    return new Promise((resolve, reject) => {
+      const cleanup = () => {
+        events.forEach(evt => {
+          if (this._pending[evt] === handlers[evt]) delete this._pending[evt];
+        });
+      };
+
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error(`Timeout waiting for TV response (${events.join(' | ')})`));
+      }, ms);
+
+      const handlers = {};
+      events.forEach(evt => {
+        handlers[evt] = {
+          resolve: d => {
+            clearTimeout(timer);
+            cleanup();
+            resolve(d);
+          },
+          reject: e => {
+            clearTimeout(timer);
+            cleanup();
+            reject(e);
+          }
+        };
+        this._pending[evt] = handlers[evt];
+      });
+    });
+  }
+
+  _handleTextMsg(msg) {
+    if (msg.event !== 'ms.channel.emit' && msg.event !== 'd2d_service_message') return;
+
+    let data = msg.data;
+    if (typeof data === 'string') {
+      try { data = JSON.parse(data); } catch { return; }
+    }
+
+    // Some TV firmwares wrap art-app events as:
+    // { event: 'd2d_service_message', data: '{"event":"content_list", ...}' }
+    if (data?.event === 'd2d_service_message' && data?.data) {
+      let inner = data.data;
+      if (typeof inner === 'string') {
+        try { inner = JSON.parse(inner); } catch { inner = null; }
+      }
+      if (inner && typeof inner === 'object') data = inner;
+    }
+
+    const evt = data?.event;
+    if (evt === 'error') {
+      const code = data?.error_code || 'unknown';
+      let requestName = 'unknown';
+      if (data?.request_data) {
+        try {
+          const req = typeof data.request_data === 'string' ? JSON.parse(data.request_data) : data.request_data;
+          requestName = req?.request || requestName;
+        } catch {}
+      }
+      let detail = `TV error ${code} (${requestName})`;
+      if (requestName === 'send_image' && String(code) === '-1') {
+        detail = 'TV error -1 (send_image). This often means TV art storage is full, or this firmware rejects current upload method.';
+      }
+      const err = new Error(detail);
+      this.onLog('✗ ' + err.message, 'err');
+      Object.values(this._pending).forEach(p => p.reject(err));
+      this._pending = {};
+      return;
+    }
+
+    if (evt && this._pending[evt]) {
+      const cb = this._pending[evt];
+      delete this._pending[evt];
+      cb.resolve(data);
+      return;
+    }
+
+    // Also resolve by request_id / id UUID for firmware that responds by UUID rather
+    // than by a named event (matches async_art.py's process_event behaviour).
+    const msgId = data?.request_id || data?.id;
+    if (msgId && this._pending[msgId]) {
+      const cb = this._pending[msgId];
+      delete this._pending[msgId];
+      cb.resolve(data);
+    }
+  }
+
+  _handleBinary() { /* binary ACKs — not needed for current flow */ }
+
+  async getContentList() {
+    this._emit({ request: 'get_content_list', category: 'MY-C0002' });
+    return this._waitFor('content_list');
+  }
+
+  async getSamsungList() {
+    this._emit({ request: 'get_content_list', category: 'SAM-C0002' });
+    return this._waitFor('content_list');
+  }
+
+  async getApiVersion() {
+    if (this.apiVersion) return this.apiVersion;
+    const reqId = (globalThis.crypto?.randomUUID?.() || `v_${Date.now()}_${Math.floor(Math.random() * 1e6)}`);
+    this._emit({ request: 'get_api_version', id: reqId, request_id: reqId });
+    const res = await this._waitFor('api_version', 6000);
+    this.apiVersion = String(res?.version || '');
+    return this.apiVersion;
+  }
+
+  async upload(jpegBlob, matteId = 'none') {
+    const buffer = await jpegBlob.arrayBuffer();
+    const imageBytes = new Uint8Array(buffer);
+    const fileSize = imageBytes.byteLength;
+
+    // Use the persistent per-instance UUID, matching Python's self.art_uuid.
+    // Both id and request_id must be the same value for cross-firmware compatibility.
+    const artUuid = this.artUuid;
+    const connId = Math.floor(Math.random() * 4000000000);
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const imageDate = `${now.getFullYear()}:${pad(now.getMonth() + 1)}:${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+    // Register handlers BEFORE sending so we never miss a fast response.
+    // Accept both event names: older firmware sends 'ready_to_receive',
+    // newer firmware sends 'ready_to_use'. Also accept artUuid for firmware
+    // that resolves by request_id instead of a named event.
+    const handshakePromise = this._waitForAny(
+      ['ready_to_receive', 'ready_to_use', artUuid], 15000
+    );
+
+    this._emit({
+      request: 'send_image',
+      file_type: 'jpg',
+      id: artUuid,
+      request_id: artUuid,
+      conn_info: {
+        d2d_mode: 'socket',
+        connection_id: connId,
+        id: artUuid,
+      },
+      image_date: imageDate,
+      matte_id: matteId || 'none',
+      portrait_matte_id: matteId || 'none',
+      file_size: fileSize,
+    });
+
+    let handshakeData;
+    try {
+      handshakeData = await handshakePromise;
+    } catch (e) {
+      throw new Error(`Timeout waiting for TV response (ready_to_receive | ready_to_use)`);
+    }
+
+    // Parse conn_info — the TV supplies the data-socket address and a secKey.
+    let connInfo = null;
+    try {
+      const ci = handshakeData?.conn_info;
+      connInfo = (typeof ci === 'string') ? JSON.parse(ci) : ci;
+    } catch {}
+
+    // Build the binary frame required by the data socket:
+    //   4 bytes big-endian  — byte length of the JSON header string
+    //   JSON header string  — includes secKey from conn_info
+    //   image bytes
+    const headerObj = {
+      num: 0,
+      total: 1,
+      fileLength: fileSize,
+      fileName: 'dummy',
+      fileType: 'jpg',
+      version: '0.0.1',
+    };
+    if (connInfo?.key) headerObj.secKey = connInfo.key;
+    const headerBytes = new TextEncoder().encode(JSON.stringify(headerObj));
+    const frame = new Uint8Array(4 + headerBytes.byteLength + imageBytes.byteLength);
+    new DataView(frame.buffer).setUint32(0, headerBytes.byteLength, false);
+    frame.set(headerBytes, 4);
+    frame.set(imageBytes, 4 + headerBytes.byteLength);
+
+    // Register for the final confirmation before sending data,
+    // so we don't miss a very fast TV response.
+    const resultPromise = this._waitForAny(['image_added', 'upload_complete'], 60000);
+
+    if (connInfo?.port) {
+      // TV gave us a dedicated data-socket address.
+      // Browsers cannot open raw TCP sockets, so try a WebSocket upgrade to that
+      // port first (works on some firmware); fall back to sending the framed
+      // payload over the control WebSocket if the upgrade is refused.
+      const ip = connInfo.ip || this.ip;
+      const port = parseInt(connInfo.port, 10);
+      const secured = !!connInfo.secured;
+      let usedDataSocket = false;
+      try {
+        await this._transferViaDataSocket(ip, port, secured, frame.buffer);
+        usedDataSocket = true;
+      } catch {
+        // Data-socket WebSocket upgrade unavailable; fall through to control WS.
+      }
+      if (!usedDataSocket) {
+        this.ws.send(frame.buffer);
+      }
+    } else {
+      // No dedicated port in response; send the framed payload on the control WS.
+      this.ws.send(frame.buffer);
+    }
+
+    const result = await resultPromise;
+    const contentId = result?.content_id;
+
+    if (contentId && matteId && matteId !== 'none') {
+      this._emit({ request: 'change_matte', content_id: contentId, matte_id: matteId });
+    }
+
+    return contentId;
+  }
+
+  // Attempt to send image data to the TV's dedicated data socket.
+  // Samsung Frame TVs use a raw TCP socket for this phase, which browsers
+  // cannot open natively.  Three approaches are tried in order:
+  //
+  //   1. relay.py  — a local Python relay (ws://localhost:8765) that opens
+  //                  the raw TCP connection on behalf of the browser.
+  //                  Run: python relay.py  (requires: pip install websockets)
+  //
+  //   2. WebSocket upgrade to the TV data port — works on some firmware that
+  //      also serves WebSocket on the same port as the TCP data socket.
+  //
+  //   3. Caller falls back to sending the framed payload over the control WS.
+  async _transferViaDataSocket(ip, port, secured, data) {
+    // — Try relay —
+    try {
+      await this._transferViaRelay(ip, port, secured, data);
+      this.onLog('Image data sent via local relay', 'info');
+      return;
+    } catch {
+      // Relay not running or rejected — try next path.
+    }
+
+    // — Try WebSocket upgrade to the TV data port —
+    const url = `${secured ? 'wss' : 'ws'}://${ip}:${port}`;
+    await new Promise((resolve, reject) => {
+      let sock;
+      try { sock = new WebSocket(url); } catch (e) { reject(e); return; }
+      sock.binaryType = 'arraybuffer';
+      const t = setTimeout(() => {
+        try { sock.close(); } catch {}
+        reject(new Error('data-socket WS timed out'));
+      }, 8000);
+      sock.onopen = () => {
+        clearTimeout(t);
+        try { sock.send(data); } catch (e) { reject(e); return; }
+        // Allow a short flush window then close.
+        setTimeout(() => { try { sock.close(); } catch {} resolve(); }, 300);
+      };
+      sock.onerror = () => { clearTimeout(t); reject(new Error('data-socket WS error')); };
+    });
+  }
+
+  // Send frame via the local relay.py service running on localhost:8765.
+  // Protocol: text message {ip,port,secured} then binary frame; relay replies "ok".
+  _transferViaRelay(ip, port, secured, data) {
+    return new Promise((resolve, reject) => {
+      let sock;
+      try { sock = new WebSocket('ws://localhost:8765'); } catch (e) { reject(e); return; }
+      sock.binaryType = 'arraybuffer';
+      const t = setTimeout(() => {
+        try { sock.close(); } catch {}
+        reject(new Error('relay timed out'));
+      }, 6000);
+      sock.onopen = () => {
+        try {
+          sock.send(JSON.stringify({ ip, port, secured: !!secured }));
+          sock.send(data);
+        } catch (e) { clearTimeout(t); reject(e); }
+      };
+      sock.onmessage = e => {
+        clearTimeout(t);
+        const msg = typeof e.data === 'string' ? e.data : '';
+        try { sock.close(); } catch {}
+        if (msg.startsWith('ok')) resolve();
+        else reject(new Error(msg || 'relay error'));
+      };
+      sock.onerror = () => { clearTimeout(t); reject(new Error('relay not available')); };
+    });
+  }
+
+  async deleteList(contentIds) {
+    this._emit({
+      request: 'delete_image_list',
+      content_id_list: contentIds.map(content_id => ({ content_id }))
+    });
+    return this._waitFor('delete_image_list', 8000);
+  }
+
+  async setArtMode(on) {
+    this.ws.send(JSON.stringify({
+      method: 'ms.channel.emit',
+      params: { event: on ? 'art_mode_on' : 'art_mode_off', to: 'host', data: '{}' }
+    }));
+  }
+
+  disconnect() {
+    this.connected = false;
+    this.ws?.close();
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  TV CONNECT / DISCONNECT
+// ─────────────────────────────────────────────────────────────
+document.getElementById('btn-trust').addEventListener('click', () => {
+  const ip = document.getElementById('tv-ip-input').value.trim();
+  if (!ip) { toast('Enter TV IP first'); return; }
+  window.open(`https://${ip}:8002/api/v2/`, '_blank');
+  log('conn-log', 'Tip: seeing “401” in that tab can be normal. The goal is accepting the security warning/certificate.', 'info');
+  document.getElementById('step1').classList.add('done');
+});
+
+document.getElementById('btn-connect').addEventListener('click', async () => {
+  const ip = document.getElementById('tv-ip-input').value.trim();
+  if (!ip) { toast('Enter TV IP address'); return; }
+
+  // Save IP to settings
+  const cfg = loadSettings(); cfg.tvIp = ip; saveSettings(cfg);
+  document.getElementById('tv-ip-input').value = ip;
+
+  setTVStatus('busy');
+  const logEl = document.getElementById('conn-log');
+  logEl.innerHTML = '';
+
+  const tv = new FrameTVArt(ip, getToken(), (msg, cls) => log('conn-log', msg, cls));
+  try {
+    await tv.connect();
+    state.tv = tv;
+    setTVStatus('on');
+    document.getElementById('btn-connect').style.display = 'none';
+    document.getElementById('btn-disconnect').style.display = '';
+    document.getElementById('btn-refresh-art').style.display = '';
+    document.getElementById('step2').classList.add('done');
+    renderProcessed();
+    loadArtList();
+  } catch (err) {
+    setTVStatus('off');
+    log('conn-log', '✗ ' + err.message, 'err');
+    toast('Connection failed — see log below', 3500);
+  }
+});
+
+document.getElementById('btn-disconnect').addEventListener('click', () => {
+  state.tv?.disconnect();
+  state.tv = null;
+  setTVStatus('off');
+  document.getElementById('btn-connect').style.display = '';
+  document.getElementById('btn-disconnect').style.display = 'none';
+  document.getElementById('btn-refresh-art').style.display = 'none';
+  document.getElementById('art-section').style.display = 'none';
+  renderProcessed();
+});
+
+// ─────────────────────────────────────────────────────────────
+//  ART LIBRARY
+// ─────────────────────────────────────────────────────────────
+async function loadArtList() {
+  if (!state.tv?.connected) return;
+  document.getElementById('art-section').style.display = 'none';
+
+  let myItems = [], samItems = [];
+  try {
+    const res = await state.tv.getContentList();
+    myItems = typeof res?.content_list === 'string'
+      ? (JSON.parse(res.content_list) || [])
+      : (res?.content_list || []);
+  } catch {}
+  try {
+    const res2 = await state.tv.getSamsungList();
+    samItems = typeof res2?.content_list === 'string'
+      ? (JSON.parse(res2.content_list) || [])
+      : (res2?.content_list || []);
+  } catch {}
+
+  const all = [...myItems, ...samItems];
+
+  document.getElementById('sn-total').textContent = all.length;
+  document.getElementById('sn-yours').textContent = myItems.length;
+  document.getElementById('sn-samsung').textContent = samItems.length;
+
+  const tbody = document.getElementById('art-tbody');
+  tbody.innerHTML = '';
+  for (const item of all) {
+    const isUser = item.content_id?.startsWith('MY-');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${isUser ? `<input type="checkbox" data-cid="${item.content_id}">` : ''}</td>
+      <td class="cid">${item.content_id || '—'}</td>
+      <td>${item.content_type || '—'}</td>
+      <td>${item.category_id || '—'}</td>
+      <td><span class="badge ${isUser ? 'b-pair' : 'b-pend'}">${isUser ? 'yours' : 'samsung'}</span></td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  document.getElementById('art-section').style.display = 'block';
+}
+
+document.getElementById('btn-refresh-art').addEventListener('click', loadArtList);
+
+document.getElementById('chk-all').addEventListener('change', function() {
+  document.querySelectorAll('#art-tbody input[type=checkbox]').forEach(cb => cb.checked = this.checked);
+});
+
+document.getElementById('btn-delete-sel').addEventListener('click', async () => {
+  const cids = [...document.querySelectorAll('#art-tbody input[type=checkbox]:checked')].map(cb => cb.dataset.cid);
+  if (!cids.length) { toast('Nothing selected'); return; }
+  if (!confirm(`Delete ${cids.length} item${cids.length !== 1 ? 's' : ''} from TV?`)) return;
+  if (!state.tv?.connected) { toast('Not connected'); return; }
+  try {
+    await state.tv.deleteList(cids);
+    toast(`✔ Deleted ${cids.length} item${cids.length !== 1 ? 's' : ''}`);
+    loadArtList();
+  } catch (err) {
+    toast('Delete failed: ' + err.message, 4000);
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+//  UPLOAD
+// ─────────────────────────────────────────────────────────────
+function getMatteId() {
+  const style = document.getElementById('s-matte-style').value;
+  const color = document.getElementById('s-matte-color').value;
+  if (!style || style === 'none') return 'none';
+  return `${style}_${color}`;
+}
+
+async function uploadOne(id) {
+  const item = state.processed.find(p => p.id === id);
+  if (!item || !state.tv?.connected) return;
+  try {
+    log('conn-log', `↑ Uploading ${item.name}…`, 'info');
+    const cid = await state.tv.upload(item.blob, getMatteId());
+    markUploaded(item.name);
+    log('conn-log', `✔ Uploaded → ${cid}`, 'ok');
+    toast('✔ Uploaded: ' + item.name);
+    renderProcessed();
+  } catch (err) {
+    log('conn-log', `✗ Upload failed: ${err.message}`, 'err');
+    toast('Upload failed — see TV tab log', 3500);
+  }
+}
+
+document.getElementById('btn-upload-all').addEventListener('click', async () => {
+  if (!state.tv?.connected) { toast('Not connected to TV'); return; }
+  const pending = state.processed.filter(p => !getUploadedSet().has(p.name));
+  if (!pending.length) { toast('All images already uploaded'); return; }
+
+  state.uploading = true;
+  document.getElementById('btn-upload-all').disabled = true;
+
+  // Switch to TV tab to show log
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('on'));
+  document.querySelector('[data-tab="tv"]').classList.add('on');
+  document.getElementById('pane-tv').classList.add('on');
+  document.getElementById('conn-log').style.display = 'block';
+
+  const cfg = loadSettings();
+  let ok = 0;
+  for (const item of pending) {
+    try {
+      log('conn-log', `[${ok + 1}/${pending.length}] ↑ ${item.name}…`, 'info');
+      const cid = await state.tv.upload(item.blob, getMatteId());
+      markUploaded(item.name);
+      log('conn-log', `✔ ${cid}`, 'ok');
+      ok++;
+    } catch (err) {
+      log('conn-log', `✗ ${item.name}: ${err.message}`, 'err');
+    }
+    await new Promise(r => setTimeout(r, 1200));
+  }
+
+  if (cfg.autoArt && ok > 0) {
+    await state.tv.setArtMode(true);
+    log('conn-log', '✔ Art Mode enabled', 'ok');
+  }
+
+  log('conn-log', `Done — ${ok}/${pending.length} uploaded`, ok === pending.length ? 'ok' : '');
+  toast(`${ok}/${pending.length} uploaded`);
+
+  state.uploading = false;
+  document.getElementById('btn-upload-all').disabled = false;
+  renderProcessed();
+});
+
+// ─────────────────────────────────────────────────────────────
+//  SETTINGS
+// ─────────────────────────────────────────────────────────────
+function applySettings(cfg) {
+  if (cfg.tvIp) document.getElementById('tv-ip-input').value = cfg.tvIp;
+  if (cfg.matteStyle) document.getElementById('s-matte-style').value = cfg.matteStyle;
+  if (cfg.matteColor) document.getElementById('s-matte-color').value = cfg.matteColor;
+  if (cfg.autoArt !== undefined) document.getElementById('s-auto-art').checked = !!cfg.autoArt;
+  if (cfg.slideshow !== undefined) document.getElementById('s-slideshow').value = cfg.slideshow;
+}
+
+document.getElementById('btn-save-settings').addEventListener('click', () => {
+  saveSettings({
+    tvIp:       document.getElementById('tv-ip-input').value.trim(),
+    matteStyle: document.getElementById('s-matte-style').value,
+    matteColor: document.getElementById('s-matte-color').value,
+    autoArt:    document.getElementById('s-auto-art').checked,
+    slideshow:  Number(document.getElementById('s-slideshow').value),
+  });
+  const n = document.getElementById('saved-notice');
+  n.style.opacity = 1; setTimeout(() => n.style.opacity = 0, 2400);
+});
+
+document.getElementById('btn-clear-uploads').addEventListener('click', async () => {
+  if (!state.tv?.connected) { toast('Connect to TV first'); return; }
+  let items = [];
+  try {
+    const res = await state.tv.getContentList();
+    items = (res?.content_list || []).filter(i => i.content_id?.startsWith('MY-'));
+  } catch (err) {
+    toast('Could not fetch TV library: ' + err.message, 4000); return;
+  }
+  if (!items.length) {
+    localStorage.removeItem('ftv_uploaded');
+    renderProcessed();
+    toast('No uploaded images found on TV');
+    return;
+  }
+  if (!confirm(`Permanently delete ${items.length} uploaded image${items.length !== 1 ? 's' : ''} from the TV?`)) return;
+  const cids = items.map(i => i.content_id);
+  try {
+    await state.tv.deleteList(cids);
+    localStorage.removeItem('ftv_uploaded');
+    renderProcessed();
+    loadArtList();
+    toast(`✔ Deleted ${items.length} image${items.length !== 1 ? 's' : ''} from TV`);
+  } catch (err) {
+    toast('Delete failed: ' + err.message, 4000);
+  }
+});
+
+document.getElementById('btn-clear-storage').addEventListener('click', () => {
+  if (!confirm('Clear all saved data (settings, token, upload history)?')) return;
+  localStorage.removeItem('ftv_settings');
+  localStorage.removeItem('ftv_token');
+  localStorage.removeItem('ftv_uploaded');
+  renderProcessed();
+  toast('Cleared');
+});
+
+// ─────────────────────────────────────────────────────────────
+//  BOOT
+// ─────────────────────────────────────────────────────────────
+applySettings(loadSettings());
+</script>
+</body>
+</html>
