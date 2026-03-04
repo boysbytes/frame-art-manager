@@ -431,13 +431,6 @@ hr{border:none;border-top:1px solid var(--border);margin:22px 0}
       </p>
       <div class="toggle-row" style="border-top:1px solid var(--border);padding-top:14px;gap:16px;align-items:flex-start;flex-wrap:wrap">
         <div style="flex:1;min-width:180px">
-          <div style="font-size:12px;color:var(--text);margin-bottom:3px">Delete uploaded images</div>
-          <div style="font-size:11px;color:var(--faint);line-height:1.55">Permanently removes all your uploaded images from the TV. Requires an active connection.</div>
-        </div>
-        <button class="btn btn-danger btn-sm" id="btn-clear-uploads" style="flex-shrink:0">Delete from TV</button>
-      </div>
-      <div class="toggle-row" style="gap:16px;align-items:flex-start;flex-wrap:wrap">
-        <div style="flex:1;min-width:180px">
           <div style="font-size:12px;color:var(--text);margin-bottom:3px">Wipe all app data</div>
           <div style="font-size:11px;color:var(--faint);line-height:1.55">Removes saved settings, the TV pairing token, and badge history. You will need to re-pair the TV.</div>
         </div>
@@ -1133,13 +1126,15 @@ class FrameTVArt {
   _handleBinary() { /* binary ACKs — not needed for current flow */ }
 
   async getContentList() {
-    this._emit({ request: 'get_content_list', category: 'MY-C0002' });
-    return this._waitFor('content_list');
+    const reqId = (globalThis.crypto?.randomUUID?.() || `cl_${Date.now()}_${Math.floor(Math.random() * 1e6)}`);
+    this._emit({ request: 'get_content_list', id: reqId, request_id: reqId, category_id: 'MY-C0002' });
+    return this._waitForAny(['content_list', reqId]);
   }
 
   async getSamsungList() {
-    this._emit({ request: 'get_content_list', category: 'SAM-C0002' });
-    return this._waitFor('content_list');
+    const reqId = (globalThis.crypto?.randomUUID?.() || `cl_${Date.now()}_${Math.floor(Math.random() * 1e6)}`);
+    this._emit({ request: 'get_content_list', id: reqId, request_id: reqId, category_id: 'SAM-C0002' });
+    return this._waitForAny(['content_list', reqId]);
   }
 
   async getApiVersion() {
@@ -1329,11 +1324,14 @@ class FrameTVArt {
   }
 
   async deleteList(contentIds) {
+    const reqId = (globalThis.crypto?.randomUUID?.() || `dl_${Date.now()}_${Math.floor(Math.random() * 1e6)}`);
     this._emit({
       request: 'delete_image_list',
+      id: reqId,
+      request_id: reqId,
       content_id_list: contentIds.map(content_id => ({ content_id }))
     });
-    return this._waitFor('delete_image_list', 8000);
+    return this._waitForAny(['delete_image_list', reqId], 8000);
   }
 
   async setArtMode(on) {
@@ -1414,14 +1412,21 @@ async function loadArtList() {
     myItems = typeof res?.content_list === 'string'
       ? (JSON.parse(res.content_list) || [])
       : (res?.content_list || []);
-  } catch {}
+  } catch (err) {
+    log('conn-log', '✗ Failed to load your uploads: ' + err.message, 'err');
+  }
   try {
     const res2 = await state.tv.getSamsungList();
     samItems = typeof res2?.content_list === 'string'
       ? (JSON.parse(res2.content_list) || [])
       : (res2?.content_list || []);
-  } catch {}
+  } catch (err) {
+    log('conn-log', '✗ Failed to load Samsung art: ' + err.message, 'err');
+  }
 
+  // Tag items by their source category so isUser is accurate regardless of content_id format.
+  myItems.forEach(i => { i._isUser = true; });
+  samItems.forEach(i => { i._isUser = false; });
   const all = [...myItems, ...samItems];
 
   document.getElementById('sn-total').textContent = all.length;
@@ -1431,7 +1436,7 @@ async function loadArtList() {
   const tbody = document.getElementById('art-tbody');
   tbody.innerHTML = '';
   for (const item of all) {
-    const isUser = item.content_id?.startsWith('MY-');
+    const isUser = item._isUser;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${isUser ? `<input type="checkbox" data-cid="${item.content_id}">` : ''}</td>
@@ -1556,34 +1561,6 @@ document.getElementById('btn-save-settings').addEventListener('click', () => {
   });
   const n = document.getElementById('saved-notice');
   n.style.opacity = 1; setTimeout(() => n.style.opacity = 0, 2400);
-});
-
-document.getElementById('btn-clear-uploads').addEventListener('click', async () => {
-  if (!state.tv?.connected) { toast('Connect to TV first'); return; }
-  let items = [];
-  try {
-    const res = await state.tv.getContentList();
-    items = (res?.content_list || []).filter(i => i.content_id?.startsWith('MY-'));
-  } catch (err) {
-    toast('Could not fetch TV library: ' + err.message, 4000); return;
-  }
-  if (!items.length) {
-    localStorage.removeItem('ftv_uploaded');
-    renderProcessed();
-    toast('No uploaded images found on TV');
-    return;
-  }
-  if (!confirm(`Permanently delete ${items.length} uploaded image${items.length !== 1 ? 's' : ''} from the TV?`)) return;
-  const cids = items.map(i => i.content_id);
-  try {
-    await state.tv.deleteList(cids);
-    localStorage.removeItem('ftv_uploaded');
-    renderProcessed();
-    loadArtList();
-    toast(`✔ Deleted ${items.length} image${items.length !== 1 ? 's' : ''} from TV`);
-  } catch (err) {
-    toast('Delete failed: ' + err.message, 4000);
-  }
 });
 
 document.getElementById('btn-clear-storage').addEventListener('click', () => {

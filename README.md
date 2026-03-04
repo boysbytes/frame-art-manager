@@ -1,98 +1,93 @@
 ---
-title: "Samsung Frame TV Art Manager"
-description: "Lightweight web app for preparing and uploading images to a Samsung Frame TV over its websocket API."
-target_audience: "Frame TV owners who want a simple tool to manage their art collection without needing a server or complex setup."
+title: "Frame ▪ Art Manager"
+description: "Lightweight client‑side tool for preparing and uploading images to a Samsung Frame TV."
+target_audience: "Frame TV owners who want a simple, serverless way to manage their art collection."
 ---
 
-# Frame TV Art Manager
+# Frame ▪ Art Manager
 
-This folder contains the source for a simple, client‑side web app that helps you prepare and upload images to a Samsung Frame TV. The app runs entirely in the browser.
+A minimal, browser‑based editor that resizes, crops and uploads pictures to a Samsung Frame TV over its undocumented WebSocket art mode API. Everything runs locally; no server or build step is required.
 
-Use it to:
+> [!note]
+> You don't need a Frame TV to use the image processing features – the app works entirely offline. Only TV communication requires a network connection.
 
-- drag & drop photos, crop/scale them to 3840×2160 canvas size
-- pair portrait shots side‑by‑side automatically or manually
-- download processed images as a ZIP archive
-- upload images directly to your Frame TV with optional matte/style settings
-- inspect and delete items already stored on the television
-- adjust slideshow interval and auto‑activate Art Mode after uploads
+## Key features
 
-Everything is stored locally (settings, pairing token, upload history) so nothing leaves your machine.
+- Drag & drop or browse photos and automatically resize/crop them to the Frame's 3840×2160 canvas.
+- Combine portrait shots side‑by‑side (automatic pairing or manual control).
+- Download processed files as a ZIP archive or upload directly to a paired TV.
+- Browse and delete art already stored on the television.
+- Configure matte style, slideshow interval and auto‑activate Art Mode after uploads.
+- Settings, pairing token and upload history persist in `localStorage`.
 
----
 
 ## Getting started
 
-1. Open `frame-art-manager.html` in a modern browser on the same network as your Frame TV.
-2. If this is your first time connecting, follow the one‑time setup below to trust the TV's certificate and pair the app.
-3. Drag images onto the **Source Images** area or click to browse.
-4. When ready, click **Process Images**, then either download them or upload to the TV (after connecting).
+1. Install Python 3 and the `websockets` package:
+   ```sh
+   python -m pip install websockets
+   ```
+   The browser cannot open raw TCP sockets, so `relay.py` bridges to the TV.
 
-> ℹ️ The app works offline except for TV communication. You can prepare files anywhere and upload later once you have network access.
+2. Start the relay in a separate terminal and keep it running while using the web app:
+   ```sh
+   python relay.py
+   ```
+
+3. Open `frame-art-manager.html` in a modern browser on the same network as your Frame TV.
+4. If this is the first connection, complete the one‑time certificate trust and pairing steps below.
+5. Drag images into the **Source Images** area or click to select files.
+6. Click **Process Images** when ready, then download or upload the results.
 
 ### One‑time setup
 
-The TV uses a self‑signed SSL certificate so browsers block the WebSocket unless you manually trust it:
+The TV uses a self‑signed certificate on port 8002, so browsers block the WebSocket until you explicitly trust it:
 
-1. Enter the TV IP in the **TV IP Address** field and click **① Trust
-   certificate**. A new tab opens at `https://<TV_IP>:8002`.
-2. Choose **Advanced → Proceed** to accept the warning.
-3. Return to the original tab and click **Connect**. Authorise the pairing
-   prompt on the TV. A token is stored for future sessions.
+1. Enter the TV IP in the **TV IP Address** field and click **① Trust certificate**. A new tab opens at `https://<TV_IP>:8002`.
+2. Use **Advanced → Proceed** to accept the warning.
+3. Return to the app and click **Connect**. Authorise the pairing prompt that appears on the TV. A token is stored for future sessions.
 
----
+> [!tip]
+> If the IP changes, clear the token in **Settings** and repeat the trust step.
 
-## Features
 
-- **Image processing** – scales and crops images to fit the Frame's 16:9 canvas. Portraits can be paired side‑by‑side.
-- **Batch upload** with progress logging, matte selection, and optional auto‑enable Art Mode.
-- **Library view** – list current content on the TV, filter by yours vs. Samsung's, and delete selected items.
-- **Settings** – control matte style/colour, slideshow timing, and clear stored data or remote images.
-- **Local storage** – settings and upload history persist between sessions.
+## Library & settings
 
-### Deleting remote images
+- Use the **Library** tab to view remote content. Filter by `MY-` entries or Samsung’s default images, and delete selected items.
+- The **Settings** tab controls matte colour/style, slideshow timing, and offers buttons to purge local data or remove all uploaded art from the TV.
 
-Use the **Delete from TV** button in the Settings tab. It requires an active
-connection and will remove all your `MY-` content IDs from the TV. A separate
-button wipes all local app data (settings + token).
-
----
-
-## Development notes
-
-The entire application is a single HTML file (`frame-art-manager.html`) with embedded CSS and JavaScript. It was built for ease of use rather than modularity – feel free to extract modules if you spin it into a larger project.
-
-A sequence diagram (`communication-flow.excalidraw`) illustrates the communication between the web client and the TV. Open it using [Excalidraw] by dragging the file onto the canvas.
-
-> 🛠 This code is stored in personal notes; adapt freely but be mindful that the
-> TV protocol is not officially supported and may change with firmware updates.
-
-> 📌 **Note:** The core art‑upload and management logic was inspired by the
-> [samsung-tv-ws-api](https://github.com/NickWaterton/samsung-tv-ws-api) Python
-> library, which implements the same `com.samsung.art-app` protocol for Frame
-> TVs.
----
 
 ## Troubleshooting
 
-- **WebSocket errors** usually mean the certificate isn't trusted or the IP is
-  wrong. Re‑visit the **Trust certificate** step.
-- **Uploads fail** if the TV disconnects or you hit throttling; retry after a
-  short delay.
-- **Images look cropped** – the app maintains the 16:9 ratio by cropping the
-  longer dimension. Pair portraits for a better fit.
+- **WebSocket errors** usually indicate an untrusted certificate or wrong IP.
+  Retry the trust process.
+- **Uploads fail** if the TV disconnects or throttles; try again after a pause.
+- **Cropped images** are a result of the fixed 16:9 canvas. Portraits look best when paired side‑by‑side.
 
----
+
+## Development notes
+
+The app is contained entirely in `frame-art-manager.html`; there are no dependencies or build steps. The global `state` object holds application data, and functions are grouped with labelled comment blocks (e.g. `// ── STATE ──` or `// ── SAMSUNG FRAME TV WEBSOCKET PROTOCOL ──`). Add new UI elements by assigning them IDs and wiring up event listeners near the bottom of the file.
+
+A sequence diagram (`communication-flow.excalidraw`) documents the message exchange between the client and the television. Open it in [Excalidraw] by dragging the file onto the canvas.
+
+> [!warning]
+> The WebSocket protocol is neither documented nor officially supported by
+> Samsung. Firmware changes may break compatibility.
+
+
+## Acknowledgements
+
+The TV communication layer is based on research and reverse-engineering work by [Nick Waterton](https://github.com/NickWaterton/samsung-tv-ws-api), whose `samsung-tv-ws-api` fork documented the `com.samsung.art-app` WebSocket protocol in detail — including the two-phase TCP image upload, content list API, and cross-firmware compatibility fixes for 2021–2024 Frame models. This project would not exist without that work.
+
 
 ## File overview
 
-| File | Purpose |
-|------|---------|
-| `frame-art-manager.html` | The working web application |
-| `communication-flow.excalidraw` | Visual sequence diagram of the app–TV
-|  | interaction |
+| File                          | Purpose                                                       |
+|------------------------------|---------------------------------------------------------------|
+| `frame-art-manager.html`     | Single‑file web application (HTML, CSS, JS)                   |
+| `communication-flow.excalidraw` | Visual sequence diagram of app↔TV interaction                  |
 
 
 [Excalidraw]: https://excalidraw.com
 
-[api]: https://github.com/NickWaterton/samsung-tv-ws-api
