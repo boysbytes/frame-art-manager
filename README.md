@@ -6,10 +6,9 @@ target_audience: "Frame TV owners who want a simple, serverless way to manage th
 
 # Frame ▪ Art Manager
 
-A minimal, browser‑based editor that resizes, crops and uploads pictures to a Samsung Frame TV over its undocumented WebSocket art mode API. Everything runs locally; no server or build step is required.
+A minimal, browser‑based editor that resizes, crops and uploads pictures to a Samsung Frame TV. Everything runs locally.
 
-> [!note]
-> You don't need a Frame TV to use the image processing features – the app works entirely offline. Only TV communication requires a network connection.
+![App screenshot](screenshot.png)
 
 ## Key features
 
@@ -53,16 +52,8 @@ The TV uses a self‑signed certificate on port 8002, so browsers block the WebS
 
 ## Library & settings
 
-- Use the **Library** tab to view remote content. Filter by `MY-` entries or Samsung’s default images, and delete selected items.
+- Use the **TV library** tab to view remote content. Filter by `MY-` entries or Samsung’s default images, and delete selected items.
 - The **Settings** tab controls matte colour/style, slideshow timing, and offers buttons to purge local data or remove all uploaded art from the TV.
-
-
-## Troubleshooting
-
-- **WebSocket errors** usually indicate an untrusted certificate or wrong IP.
-  Retry the trust process.
-- **Uploads fail** if the TV disconnects or throttles; try again after a pause.
-- **Cropped images** are a result of the fixed 16:9 canvas. Portraits look best when paired side‑by‑side.
 
 
 ## Development notes
@@ -70,10 +61,6 @@ The TV uses a self‑signed certificate on port 8002, so browsers block the WebS
 The app is contained entirely in `frame-art-manager.html`; there are no dependencies or build steps. The global `state` object holds application data, and functions are grouped with labelled comment blocks (e.g. `// ── STATE ──` or `// ── SAMSUNG FRAME TV WEBSOCKET PROTOCOL ──`). Add new UI elements by assigning them IDs and wiring up event listeners near the bottom of the file.
 
 A sequence diagram (`communication-flow.excalidraw`) documents the message exchange between the client and the television. Open it in [Excalidraw] by dragging the file onto the canvas.
-
-> [!warning]
-> The WebSocket protocol is neither documented nor officially supported by
-> Samsung. Firmware changes may break compatibility.
 
 
 ## Acknowledgements
