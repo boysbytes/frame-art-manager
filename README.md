@@ -53,7 +53,7 @@ The TV uses a self‑signed certificate on port 8002, so browsers block the WebS
 ## Library & settings
 
 - Use the **TV library** tab to view remote content. Filter by `MY-` entries or Samsung’s default images, and delete selected items.
-- The **Settings** tab controls matte colour/style, slideshow timing, and offers buttons to purge local data or remove all uploaded art from the TV.
+- The **Settings** tab controls matte colour/style, slideshow timing, and offers a button to purge local data.
 
 
 ## Development notes
