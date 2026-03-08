@@ -957,8 +957,6 @@ class FrameTVArt {
         `ws://${this.ip}:8001/api/v2/channels/com.samsung.art-app?name=${name}${tokenParam}`,
         `ws://${this.ip}:8002/api/v2/channels/com.samsung.art-app?name=${name}${tokenParam}`,
         `wss://${this.ip}:8002/api/v2/channels/com.samsung.art-app?name=${name}${tokenParam}`,
-        `wss://${this.ip}:8002/api/v2/channels/samsung.remote.control?name=${name}${tokenParam}`,
-        `ws://${this.ip}:8002/api/v2/channels/samsung.remote.control?name=${name}${tokenParam}`,
       ];
 
       const tryConnect = idx => {
@@ -996,6 +994,9 @@ class FrameTVArt {
             if (msg.data?.token) { this.token = msg.data.token; setToken(msg.data.token); }
             this.onLog('✔ Connected to TV', 'ok');
             resolve(this.token);
+            this.getApiVersion()
+              .then(v => { if (v) this.onLog('API version: ' + v, 'info'); })
+              .catch(() => {});
           } else {
             this._handleTextMsg(msg);
           }
@@ -1181,7 +1182,7 @@ class FrameTVArt {
 
     this._emit({
       request: 'send_image',
-      file_type: 'jpg',
+      file_type: 'JPEG',
       id: artUuid,
       request_id: artUuid,
       conn_info: {
@@ -1218,7 +1219,7 @@ class FrameTVArt {
       total: 1,
       fileLength: fileSize,
       fileName: 'dummy',
-      fileType: 'jpg',
+      fileType: 'JPEG',
       version: '0.0.1',
     };
     if (connInfo?.key) headerObj.secKey = connInfo.key;
@@ -1284,7 +1285,7 @@ class FrameTVArt {
       this.onLog('Image data sent via local relay', 'info');
       return;
     } catch {
-      // Relay not running or rejected — try next path.
+      this.onLog('Relay not available — start relay.py (pip install websockets → python relay.py)', 'info');
     }
 
     // — Try WebSocket upgrade to the TV data port —
@@ -1347,10 +1348,8 @@ class FrameTVArt {
   }
 
   async setArtMode(on) {
-    this.ws.send(JSON.stringify({
-      method: 'ms.channel.emit',
-      params: { event: on ? 'art_mode_on' : 'art_mode_off', to: 'host', data: '{}' }
-    }));
+    const reqId = (globalThis.crypto?.randomUUID?.() || `am_${Date.now()}_${Math.floor(Math.random() * 1e6)}`);
+    this._emit({ request: 'set_artmode_status', id: reqId, request_id: reqId, value: on ? 'on' : 'off' });
   }
 
   setSlideshow(minutes) {
