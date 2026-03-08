@@ -378,7 +378,8 @@ hr{border:none;border-top:1px solid var(--border);margin:22px 0}
   <div class="pane" id="pane-settings">
 
     <div class="card">
-      <div class="card-head">Matte</div>
+      <div class="card-head">Art Mode</div>
+
       <div class="field-row">
         <div class="field">
           <label>Matte Style</label>
@@ -410,17 +411,27 @@ hr{border:none;border-top:1px solid var(--border);margin:22px 0}
           </select>
         </div>
       </div>
-    </div>
 
-    <div class="card">
-      <div class="card-head">Art Mode</div>
-      <div class="toggle-row">
-        <span class="toggle-label">Enable Art Mode after upload</span>
-        <label class="toggle"><input type="checkbox" id="s-auto-art" checked><span class="tslider"></span></label>
-      </div>
       <div class="field" style="margin-top:16px">
         <label>Slideshow interval (minutes, 0 = off)</label>
         <input type="number" id="s-slideshow" value="30" min="0" max="1440" style="max-width:140px">
+      </div>
+
+      <div style="border-top:1px solid var(--border);margin:18px 0"></div>
+
+      <p style="font-size:11px;color:var(--mid);margin:24px 0 10px 0">Pushes matte and slideshow settings to the currently connected TV.</p>
+      <div class="btn-row" style="margin-top:0;justify-content:flex-start">
+        <button class="btn btn-primary btn-sm" id="btn-apply-tv">Apply to TV</button>
+        <span id="apply-tv-status" style="font-size:11px;color:var(--mid);margin-left:12px"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">Upload</div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">Enable Art Mode after upload</span>
+        <label class="toggle"><input type="checkbox" id="s-auto-art" checked><span class="tslider"></span></label>
       </div>
     </div>
 
@@ -441,6 +452,7 @@ hr{border:none;border-top:1px solid var(--border);margin:22px 0}
     <div class="btn-row">
       <button class="btn btn-primary" id="btn-save-settings">Save Settings</button>
       <span id="saved-notice" style="font-size:11px;color:var(--green);opacity:0;transition:opacity .4s">Saved ✔</span>
+      <span style="font-size:11px;color:var(--faint);margin-left:4px">— saves to this browser only</span>
     </div>
 
   </div>
@@ -1341,6 +1353,29 @@ class FrameTVArt {
     }));
   }
 
+  setSlideshow(minutes) {
+    const reqId = (globalThis.crypto?.randomUUID?.() || `ss_${Date.now()}_${Math.floor(Math.random() * 1e6)}`);
+    this._emit({
+      request: 'set_slideshow_status',
+      id: reqId,
+      request_id: reqId,
+      value: minutes === 0 ? 'off' : String(minutes),
+      category_id: 'MY-C0002',
+      type: 'shuffleslideshow',
+    });
+  }
+
+  changeMatte(contentId, matteId) {
+    const reqId = (globalThis.crypto?.randomUUID?.() || `cm_${Date.now()}_${Math.floor(Math.random() * 1e6)}`);
+    this._emit({
+      request: 'change_matte',
+      id: reqId,
+      request_id: reqId,
+      content_id: contentId,
+      matte_id: matteId,
+    });
+  }
+
   disconnect() {
     this.connected = false;
     this.ws?.close();
@@ -1571,6 +1606,55 @@ document.getElementById('btn-clear-storage').addEventListener('click', () => {
   renderProcessed();
   toast('Cleared');
 });
+
+// ─────────────────────────────────────────────────────────────
+//  APPLY TO TV
+// ─────────────────────────────────────────────────────────────
+async function applyArtSettings() {
+  if (!state.tv?.connected) { toast('Not connected to TV'); return; }
+
+  const btn = document.getElementById('btn-apply-tv');
+  const status = document.getElementById('apply-tv-status');
+  btn.disabled = true;
+  status.style.color = 'var(--mid)';
+  status.textContent = 'Applying…';
+
+  const minutes = Number(document.getElementById('s-slideshow').value);
+  const matteId = getMatteId();
+
+  try {
+    state.tv.setSlideshow(minutes);
+
+    if (matteId !== 'none') {
+      const res = await state.tv.getContentList();
+      const items = typeof res?.content_list === 'string'
+        ? (JSON.parse(res.content_list) || [])
+        : (res?.content_list || []);
+      const total = items.length;
+      let done = 0;
+      for (const item of items) {
+        if (!item.content_id) continue;
+        state.tv.changeMatte(item.content_id, matteId);
+        done++;
+        status.textContent = `Applying matte to ${done}/${total}…`;
+        await new Promise(r => setTimeout(r, 200));
+      }
+    }
+
+    status.style.color = 'var(--green)';
+    status.textContent = '✔ Applied';
+    setTimeout(() => { status.textContent = ''; }, 3000);
+    toast('✔ Settings applied to TV');
+  } catch (err) {
+    status.style.color = 'var(--red)';
+    status.textContent = '✗ Error';
+    toast('Apply failed: ' + err.message, 4000);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('btn-apply-tv').addEventListener('click', () => applyArtSettings());
 
 // ─────────────────────────────────────────────────────────────
 //  BOOT
