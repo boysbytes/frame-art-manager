@@ -1028,6 +1028,13 @@ class FrameTVArt {
         this.ws.onclose = e => {
           if (!settled) return;
           this.connected = false;
+
+          // update UI exactly as if the user had clicked the disconnect button
+          setTVStatus('off');
+          document.getElementById('btn-connect').style.display = '';
+          document.getElementById('btn-disconnect').style.display = 'none';
+          document.getElementById('btn-refresh-art').style.display = 'none';
+
           if (e?.code === 403) {
             localStorage.removeItem('ftv_token');
             this.onLog('Token rejected by TV. Please reconnect and accept pairing again.', 'err');
