@@ -487,11 +487,26 @@ function saveSettings(s) { localStorage.setItem('ftv_settings', JSON.stringify(s
 function getToken() { return localStorage.getItem('ftv_token') || ''; }
 function setToken(t) { if(t) localStorage.setItem('ftv_token', t); }
 function getUploadedSet() {
-  try { return new Set(JSON.parse(localStorage.getItem('ftv_uploaded') || '[]')); } catch { return new Set(); }
+  try {
+    const arr = JSON.parse(localStorage.getItem('ftv_uploaded') || '[]');
+    return new Set(arr.map(e => typeof e === 'string' ? e : e.name));
+  } catch { return new Set(); }
 }
-function markUploaded(name) {
-  const s = getUploadedSet(); s.add(name);
-  localStorage.setItem('ftv_uploaded', JSON.stringify([...s]));
+function markUploaded(name, cid) {
+  try {
+    const arr = JSON.parse(localStorage.getItem('ftv_uploaded') || '[]');
+    const filtered = arr.filter(e => (typeof e === 'string' ? e : e.name) !== name);
+    filtered.push(cid ? { name, cid } : name);
+    localStorage.setItem('ftv_uploaded', JSON.stringify(filtered));
+  } catch {}
+}
+function removeUploadedByCids(cids) {
+  try {
+    const cidSet = new Set(cids);
+    const arr = JSON.parse(localStorage.getItem('ftv_uploaded') || '[]');
+    const filtered = arr.filter(e => typeof e === 'string' || !cidSet.has(e.cid));
+    localStorage.setItem('ftv_uploaded', JSON.stringify(filtered));
+  } catch {}
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1498,6 +1513,8 @@ document.getElementById('btn-delete-sel').addEventListener('click', async () => 
   if (!state.tv?.connected) { toast('Not connected'); return; }
   try {
     await state.tv.deleteList(cids);
+    removeUploadedByCids(cids);
+    renderProcessed();
     toast(`✔ Deleted ${cids.length} item${cids.length !== 1 ? 's' : ''}`);
     loadArtList();
   } catch (err) {
@@ -1521,7 +1538,7 @@ async function uploadOne(id) {
   try {
     log('conn-log', `↑ Uploading ${item.name}…`, 'info');
     const cid = await state.tv.upload(item.blob, getMatteId());
-    markUploaded(item.name);
+    markUploaded(item.name, cid);
     log('conn-log', `✔ Uploaded → ${cid}`, 'ok');
     toast('✔ Uploaded: ' + item.name);
     renderProcessed();
@@ -1552,7 +1569,7 @@ document.getElementById('btn-upload-all').addEventListener('click', async () => 
     try {
       log('conn-log', `[${ok + 1}/${pending.length}] ↑ ${item.name}…`, 'info');
       const cid = await state.tv.upload(item.blob, getMatteId());
-      markUploaded(item.name);
+      markUploaded(item.name, cid);
       log('conn-log', `✔ ${cid}`, 'ok');
       ok++;
     } catch (err) {
