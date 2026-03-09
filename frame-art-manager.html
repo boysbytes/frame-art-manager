@@ -959,9 +959,9 @@ class FrameTVArt {
     this.apiVersion = null;
     this.onLog = onLog || (() => {});
     this._pending = {};
-    // Persistent per-instance UUID used as both id and request_id for send_image,
-    // matching the Python library's self.art_uuid pattern.
-    this.artUuid = (globalThis.crypto?.randomUUID?.() || `art_${Date.now()}_${Math.floor(Math.random() * 1e6)}`);
+    // artUuid is generated fresh per upload() call (not cached here) so that a
+    // delayed TV response from one upload cannot contaminate the next upload's
+    // pending handler registry.
   }
 
   connect() {
@@ -1179,9 +1179,10 @@ class FrameTVArt {
     const imageBytes = new Uint8Array(buffer);
     const fileSize = imageBytes.byteLength;
 
-    // Use the persistent per-instance UUID, matching Python's self.art_uuid.
-    // Both id and request_id must be the same value for cross-firmware compatibility.
-    const artUuid = this.artUuid;
+    // Fresh UUID per upload call — prevents delayed TV responses from upload N
+    // (which share the same event names) from prematurely resolving upload N+1's
+    // pending handlers. Both id and request_id must be the same value.
+    const artUuid = globalThis.crypto?.randomUUID?.() || `art_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
     const connId = Math.floor(Math.random() * 4000000000);
     const now = new Date();
     const pad = n => String(n).padStart(2, '0');
@@ -1244,9 +1245,10 @@ class FrameTVArt {
     frame.set(headerBytes, 4);
     frame.set(imageBytes, 4 + headerBytes.byteLength);
 
-    // Register for the final confirmation before sending data,
-    // so we don't miss a very fast TV response.
-    const resultPromise = this._waitForAny(['image_added', 'upload_complete'], 60000);
+    // Register for the final confirmation before sending data so we never miss
+    // a fast response. Watch all three identifiers: older firmware uses the event
+    // name; 2024/2025 firmware echoes back the artUuid as request_id.
+    const resultPromise = this._waitForAny(['image_added', 'upload_complete', artUuid], 60000);
 
     if (connInfo?.port) {
       // TV gave us a dedicated data-socket address.
@@ -1575,7 +1577,9 @@ document.getElementById('btn-upload-all').addEventListener('click', async () => 
     } catch (err) {
       log('conn-log', `✗ ${item.name}: ${err.message}`, 'err');
     }
-    await new Promise(r => setTimeout(r, 1200));
+    // 2 500 ms gap between uploads — the developer manual requires ≥ 2 s for the
+    // TV to commit each image to storage before accepting the next send_image.
+    await new Promise(r => setTimeout(r, 2500));
   }
 
   if (cfg.autoArt && ok > 0) {
