@@ -64,7 +64,7 @@ A sequence diagram (`communication-flow.excalidraw`) documents the message excha
 
 ## Companion app
 
-`mattehaus-frame-studio` is the sister app for composing matte frame layouts (diptych or triptych) before you upload the finished artwork here. It gives you a separate workspace for building the frame composition, then this app handles the TV connection, upload flow and library management.
+`mattehaus-frame-studio` is the companion app for composing matte frame layouts (diptych or triptych) before you upload the finished artwork here. It gives you a separate workspace for building the frame composition, then this app handles the TV connection, upload flow and library management.
 
 Mattehaus repo at <https://github.com/boysbytes/mattehaus-frame-studio>
 
