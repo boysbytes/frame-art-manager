@@ -8,7 +8,7 @@ target_audience: "Frame TV owners who want a simple, serverless way to manage th
 
 A minimal, browser‑based editor that resizes, crops and uploads pictures to a Samsung Frame TV. Everything runs locally.
 
-![App screenshot](screenshot.png)
+![App screenshot](frame-art-screenshot.png)
 
 ## Key features
 
@@ -19,16 +19,18 @@ A minimal, browser‑based editor that resizes, crops and uploads pictures to a 
 - Configure matte style, slideshow interval and auto‑activate Art Mode after uploads.
 - Settings, pairing token and upload history persist in `localStorage`.
 
-
 ## Getting started
 
 1. Install Python 3 and the `websockets` package:
+
    ```sh
    python -m pip install websockets
    ```
+
    The browser cannot open raw TCP sockets, so `relay.py` bridges to the TV.
 
 2. Start the relay in a separate terminal and keep it running while using the web app:
+
    ```sh
    python relay.py
    ```
@@ -49,12 +51,10 @@ The TV uses a self‑signed certificate on port 8002, so browsers block the WebS
 > [!tip]
 > If the IP changes, clear the token in **Settings** and repeat the trust step.
 
-
 ## Library & settings
 
 - Use the **TV library** tab to view remote content. Filter by `MY-` entries or Samsung’s default images, and delete selected items.
 - The **Settings** tab controls matte colour/style, slideshow timing, and offers a button to purge local data.
-
 
 ## Development notes
 
@@ -62,19 +62,21 @@ The app is contained entirely in `frame-art-manager.html`; there are no dependen
 
 A sequence diagram (`communication-flow.excalidraw`) documents the message exchange between the client and the television. Open it in [Excalidraw] by dragging the file onto the canvas.
 
+## Companion app
+
+`mattehaus-frame-studio` is the sister app for composing matte frame layouts (diptych or triptych) before you upload the finished artwork here. It gives you a separate workspace for building the frame composition, then this app handles the TV connection, upload flow and library management.
+
+Mattehaus repo at <https://github.com/boysbytes/mattehaus-frame-studio>
 
 ## Acknowledgements
 
 The TV communication layer is based on research and reverse-engineering work by [Nick Waterton](https://github.com/NickWaterton/samsung-tv-ws-api), whose `samsung-tv-ws-api` fork documented the `com.samsung.art-app` WebSocket protocol in detail — including the two-phase TCP image upload, content list API, and cross-firmware compatibility fixes for 2021–2024 Frame models. This project would not exist without that work.
 
-
 ## File overview
 
-| File                          | Purpose                                                       |
-|------------------------------|---------------------------------------------------------------|
-| `frame-art-manager.html`     | Single‑file web application (HTML, CSS, JS)                   |
-| `communication-flow.excalidraw` | Visual sequence diagram of app↔TV interaction                  |
-
+| File | Purpose |
+| ------------------------------ | --------------------------------------------------------------- |
+| `frame-art-manager.html` | Single‑file web application (HTML, CSS, JS) |
+| `communication-flow.excalidraw` | Visual sequence diagram of app↔TV interaction |
 
 [Excalidraw]: https://excalidraw.com
-
