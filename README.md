@@ -4,7 +4,7 @@ description: "Lightweight client‑side tool for preparing and uploading images 
 target_audience: "Frame TV owners who want a simple, serverless way to manage their art collection."
 ---
 
-# Frame ▪ Art Manager
+## Frame ▪ Art Manager
 
 A minimal, browser‑based editor that resizes, crops and uploads pictures to a Samsung Frame TV. Everything runs locally.
 
@@ -16,12 +16,38 @@ A minimal, browser‑based editor that resizes, crops and uploads pictures to a 
 - Combine portrait shots side‑by‑side (automatic pairing or manual control).
 - Download processed files as a ZIP archive or upload directly to a paired TV.
 - Browse and delete art already stored on the television.
-- Configure matte style, slideshow interval and auto‑activate Art Mode after uploads.
+- Configure matte style, diptych matte colour, slideshow interval and auto‑activate Art Mode after uploads.
 - Settings, pairing token and upload history persist in `localStorage`.
 
 ## Getting started
 
-1. Install Python 3 and the `websockets` package:
+1. Create a Python virtual environment:
+
+   ```sh
+   python -m venv .venv
+   ```
+
+   Then activate it:
+
+   **PowerShell:**
+
+   ```powershell
+   .\.venv\Scripts\Activate.ps1
+   ```
+
+   **Command Prompt:**
+
+   ```cmd
+   .venv\Scripts\activate.bat
+   ```
+
+   **Bash/Git Bash:**
+
+   ```bash
+   source .venv/Scripts/activate
+   ```
+
+2. Install the `websockets` package:
 
    ```sh
    python -m pip install websockets
@@ -29,16 +55,16 @@ A minimal, browser‑based editor that resizes, crops and uploads pictures to a 
 
    The browser cannot open raw TCP sockets, so `relay.py` bridges to the TV.
 
-2. Start the relay in a separate terminal and keep it running while using the web app:
+3. Start the relay in a separate terminal and keep it running while using the web app:
 
    ```sh
    python relay.py
    ```
 
-3. Open `frame-art-manager.html` in a modern browser on the same network as your Frame TV.
-4. If this is the first connection, complete the one‑time certificate trust and pairing steps below.
-5. Drag images into the **Source Images** area or click to select files.
-6. Click **Process Images** when ready, then download or upload the results.
+4. Open `frame-art-manager.html` in a modern browser on the same network as your Frame TV.
+5. If this is the first connection, complete the one‑time certificate trust and pairing steps below.
+6. Drag images into the **Source Images** area or click to select files.
+7. Click **Process Images** when ready, then download or upload the results.
 
 ### One‑time setup
 
@@ -53,20 +79,14 @@ The TV uses a self‑signed certificate on port 8002, so browsers block the WebS
 
 ## Library & settings
 
-- Use the **TV library** tab to view remote content. Filter by `MY-` entries or Samsung’s default images, and delete selected items.
-- The **Settings** tab controls matte colour/style, slideshow timing, and offers a button to purge local data.
+- Use the **TV library** tab to view remote content. Filter by `MY-` entries or Samsung's default images, and delete selected items.
+- The **Settings** tab controls matte style, diptych matte colour, slideshow timing, and offers a button to purge local data.
 
 ## Development notes
 
 The app is contained entirely in `frame-art-manager.html`; there are no dependencies or build steps. The global `state` object holds application data, and functions are grouped with labelled comment blocks (e.g. `// ── STATE ──` or `// ── SAMSUNG FRAME TV WEBSOCKET PROTOCOL ──`). Add new UI elements by assigning them IDs and wiring up event listeners near the bottom of the file.
 
 A sequence diagram (`communication-flow.excalidraw`) documents the message exchange between the client and the television. Open it in [Excalidraw] by dragging the file onto the canvas.
-
-## Companion app
-
-`mattehaus-frame-studio` is the companion app for composing matte frame layouts (diptych or triptych) before you upload the finished artwork here. It gives you a separate workspace for building the frame composition, then this app handles the TV connection, upload flow and library management.
-
-Mattehaus repo at <https://github.com/boysbytes/mattehaus-frame-studio>
 
 ## Acknowledgements
 
